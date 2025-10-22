@@ -125,6 +125,11 @@ public abstract class MidiReceiver implements Receiver {
     public void stopAllKeys() {
         playedKeys.values().forEach(noteUuid -> NotePlayer.stopNote(noteUuid, player));
         playedKeys.clear();
+        if (!inPedalKeys.isEmpty()) {
+            inPedalKeys.forEach(noteUuid -> NotePlayer.stopNote(noteUuid, player));
+            inPedalKeys.clear();
+        }
+        pedal = false;
         variantId = 0;
     }
 
