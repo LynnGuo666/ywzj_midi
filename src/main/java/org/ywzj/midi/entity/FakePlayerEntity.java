@@ -12,6 +12,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import org.ywzj.midi.all.AllEntities;
@@ -58,11 +59,29 @@ public class FakePlayerEntity extends Mob {
                 this.lookAt(EntityAnchorArgument.Anchor.EYES, EntityAnchorArgument.Anchor.EYES.apply(player));
             }
             if (!player.isCrouching()) {
-                if (this.getItemInHand(InteractionHand.MAIN_HAND).getItem().equals(player.getItemInHand(InteractionHand.MAIN_HAND).getItem())) {
-                    this.setItemInHand(InteractionHand.OFF_HAND, this.getItemInHand(InteractionHand.MAIN_HAND));
-                    this.setItemInHand(InteractionHand.MAIN_HAND, Items.AIR.getDefaultInstance());
-                } else {
-                    this.setItemInHand(InteractionHand.MAIN_HAND, player.getItemInHand(InteractionHand.MAIN_HAND));
+                ItemStack playerStack = player.getItemInHand(InteractionHand.MAIN_HAND);
+                ItemStack fakeStack = this.getItemInHand(InteractionHand.MAIN_HAND);
+                if (playerStack.isEmpty() && !fakeStack.isEmpty()) {
+                    player.setItemInHand(InteractionHand.MAIN_HAND, fakeStack.copy());
+                    this.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                    return InteractionResult.CONSUME;
+                }
+                if (!playerStack.isEmpty() && fakeStack.isEmpty()) {
+                    this.setItemInHand(InteractionHand.MAIN_HAND, playerStack.copy());
+                    if (!player.getAbilities().instabuild) {
+                        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                    }
+                    return InteractionResult.CONSUME;
+                }
+                if (!playerStack.isEmpty() && !fakeStack.isEmpty()) {
+                    ItemStack fakeCopy = fakeStack.copy();
+                    this.setItemInHand(InteractionHand.MAIN_HAND, playerStack.copy());
+                    if (!player.getAbilities().instabuild) {
+                        player.setItemInHand(InteractionHand.MAIN_HAND, fakeCopy);
+                    } else {
+                        player.setItemInHand(InteractionHand.MAIN_HAND, fakeCopy);
+                    }
+                    return InteractionResult.CONSUME;
                 }
             } else {
                 this.entityData.set(IS_SITTING, !this.entityData.get(IS_SITTING));

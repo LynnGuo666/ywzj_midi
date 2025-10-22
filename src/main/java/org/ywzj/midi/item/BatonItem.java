@@ -34,9 +34,10 @@ public class BatonItem extends Item {
     @Override
     public InteractionResult useOn(UseOnContext useOnContext) {
         Level level = useOnContext.getLevel();
-        if (!level.isClientSide && useOnContext.getHand().equals(InteractionHand.MAIN_HAND) && useOnContext.getPlayer().isCrouching()) {
+        Player player = useOnContext.getPlayer();
+        if (!level.isClientSide && player != null && useOnContext.getHand().equals(InteractionHand.MAIN_HAND) && player.isCrouching()) {
             FakePlayerEntity fakePlayerEntity = new FakePlayerEntity(AllEntities.FAKE_PLAYER.get(), level);
-            fakePlayerEntity.setPos(useOnContext.getClickLocation());
+            fakePlayerEntity.moveTo(useOnContext.getClickLocation());
             level.addFreshEntity(fakePlayerEntity);
         }
         return InteractionResult.PASS;
