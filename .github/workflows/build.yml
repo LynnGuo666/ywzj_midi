@@ -26,3 +26,15 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew build
+
+      - name: Collect mod version
+        run: |
+          MOD_VERSION=$(grep "^mod_version" gradle.properties | cut -d'=' -f2)
+          echo "MOD_VERSION=$MOD_VERSION" >> $GITHUB_ENV
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ywzj_midi-${{ env.MOD_VERSION }}
+          path: build/libs/*.jar
+          if-no-files-found: error
