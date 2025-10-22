@@ -16,11 +16,10 @@ import org.ywzj.midi.instrument.player.MidiPlayer;
 import org.ywzj.midi.storage.ConductorConfig;
 import org.ywzj.midi.storage.MidiFiles;
 import org.ywzj.midi.util.ComponentUtils;
+import org.ywzj.midi.util.MathUtils;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ConductorScreen extends Screen {
@@ -60,12 +59,23 @@ public class ConductorScreen extends Screen {
         List<SelectionList.Selection<LivingEntity>> players = new ArrayList<>();
         List<Path> midPaths = MidiFiles.getMids();
         conductor = Minecraft.getInstance().player;
-        conductor.level().getEntities(conductor,
-                new AABB(conductor.getX()-32.0D, conductor.getY()-32.0D, conductor.getZ()-32.0D, conductor.getX()+32.0D, conductor.getY()+32.0D, conductor.getZ()+32.0D))
-                .stream()
-                .filter(entity -> entity instanceof Player || entity instanceof FakePlayerEntity)
-                .forEach(player -> players.add(new SelectionList.Selection(player, player.getName().getString())));
-        players.add(new SelectionList.Selection<>(conductor, conductor.getName().getString()));
+        if (conductor == null) {
+            return;
+        }
+        Map<UUID, SelectionList.Selection<LivingEntity>> selectionLookup = new LinkedHashMap<>();
+        conductor.level().players().forEach(player -> selectionLookup.put(player.getUUID(), createSelection(player)));
+        AABB searchBox = AABB.ofSize(conductor.position(), 128, 128, 128);
+        conductor.level().getEntitiesOfClass(FakePlayerEntity.class, searchBox)
+                .forEach(fake -> selectionLookup.putIfAbsent(fake.getUUID(), createSelection(fake)));
+        SelectionList.Selection<LivingEntity> conductorSelection = selectionLookup.remove(conductor.getUUID());
+        if (conductorSelection != null) {
+            players.add(conductorSelection);
+        } else {
+            players.add(createSelection(conductor));
+        }
+        List<SelectionList.Selection<LivingEntity>> others = new ArrayList<>(selectionLookup.values());
+        others.sort(Comparator.comparing(selection -> selection.name, String.CASE_INSENSITIVE_ORDER));
+        players.addAll(others);
         midSelections.clear();
         midPaths.forEach(midPath -> midSelections.add(new SelectionList.Selection<>(midPath, midPath.getFileName().toString())));
         if (firstRender) {
@@ -272,6 +282,15 @@ public class ConductorScreen extends Screen {
             channelFilterButton.updatePos(width/2 + 130 - 40, height/2 + 70);
             addRenderableWidget(channelFilterButton);
         }
+    }
+
+    private SelectionList.Selection<LivingEntity> createSelection(LivingEntity entity) {
+        return new SelectionList.Selection<>(entity, formatDisplayName(entity));
+    }
+
+    private String formatDisplayName(LivingEntity entity) {
+        double distance = MathUtils.distance(conductor.getX(), conductor.getY(), conductor.getZ(), entity.getX(), entity.getY(), entity.getZ());
+        return String.format(Locale.ROOT, "%s (%.1fm)", entity.getName().getString(), distance);
     }
 
     public void callbackPlayButton() {
